@@ -1,9 +1,9 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#101426"><title>Crazy Heights — v4</title><style>*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:#101426;color:white;font-family:system-ui;touch-action:none}#game{display:block;width:100vw;height:100dvh;touch-action:none}#hud{position:fixed;top:env(safe-area-inset-top);left:12px;right:12px;display:flex;justify-content:space-between;pointer-events:none;font-weight:900;text-shadow:1px 2px #000}#help{position:fixed;top:48px;width:100%;text-align:center;font-size:12px;color:#fff9;pointer-events:none}#reset{position:fixed;right:12px;top:55px;background:#253451;color:#fff;border:1px solid #fff6;border-radius:10px;padding:8px;touch-action:manipulation}</style></head><body><canvas id="game"></canvas><div id="hud"><span>CRAZY HEIGHTS</span><span id="score">FLOOR 0</span><span id="lives">♥ ♥ ♥</span></div><div id="help">Two thumbs • UP to reach, DOWN to pull • dodge flowerpots • v4</div><button id="reset">Restart</button><script>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#101426"><title>Crazy Heights — v5</title><style>*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:#101426;color:white;font-family:system-ui;touch-action:none}#game{display:block;width:100vw;height:100dvh;touch-action:none}#hud{position:fixed;top:env(safe-area-inset-top);left:12px;right:12px;display:flex;justify-content:space-between;pointer-events:none;font-weight:900;text-shadow:1px 2px #000}#help{position:fixed;top:48px;width:100%;text-align:center;font-size:12px;color:#fff9;pointer-events:none}#reset{position:fixed;right:12px;top:55px;background:#253451;color:#fff;border:1px solid #fff6;border-radius:10px;padding:8px;touch-action:manipulation}</style></head><body><canvas id="game"></canvas><div id="hud"><span>CRAZY HEIGHTS</span><span id="score">FLOOR 0</span><span id="lives">♥ ♥ ♥</span></div><div id="help">Two thumbs • UP to reach, DOWN to pull • dodge flowerpots • v5</div><button id="reset">Restart</button><script>
 const canvas=document.getElementById('game'),ctx=canvas.getContext('2d'),score=document.getElementById('score'),livesLabel=document.getElementById('lives');
-let W,H,dpr,worldTop=0,climb=0,lane=2,arms=[0,0],lastDirs=[0,0],touches=new Map(),sticks=[null,null],shake=0,visualClimb=0,visualLane=2,prevFrame=0,stepPhase=0,handPose=[.52,.52],lastPull=-1,bodyBob=0,shirt='#38d6ab',pots=[],spawnIn=3,lady=null,ladyIn=8,points=0,lives=3,invulnerable=0,gameOver=false,clock=0,scurryDir=0;
+let W,H,dpr,worldTop=0,climb=0,lane=2,arms=[0,0],lastDirs=[0,0],touches=new Map(),sticks=[null,null],shake=0,visualClimb=0,visualLane=2,prevFrame=0,stepPhase=0,handPose=[.52,.52],lastPull=-1,bodyBob=0,shirt='#f4b63c',pots=[],thrower=null,spawnIn=3,lady=null,ladyIn=8,points=0,lives=3,invulnerable=0,gameOver=false,clock=0,scurryDir=0;
 const cols=5,rows=6;let topH,cellW,rowH,buildingX,buildingW;
 function resize(){W=innerWidth;H=innerHeight;dpr=Math.min(devicePixelRatio||1,2);canvas.width=W*dpr;canvas.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);topH=H*.74;buildingW=Math.min(W*.94,460);buildingX=(W-buildingW)/2;cellW=buildingW/cols;rowH=topH/rows}addEventListener('resize',resize);resize();
-function reset(){climb=0;lane=2;arms=[0,0];lastDirs=[0,0];worldTop=0;visualClimb=0;visualLane=2;handPose=[.52,.52];lastPull=-1;bodyBob=0;pots=[];spawnIn=3;lady=null;ladyIn=8;points=0;lives=3;gameOver=false;invulnerable=0;score.textContent='FLOOR 0';livesLabel.textContent='♥ ♥ ♥'}document.getElementById('reset').onclick=reset;
+function reset(){climb=0;lane=2;arms=[0,0];lastDirs=[0,0];worldTop=0;visualClimb=0;visualLane=2;handPose=[.52,.52];lastPull=-1;bodyBob=0;pots=[];thrower=null;spawnIn=3;lady=null;ladyIn=8;points=0;lives=3;gameOver=false;invulnerable=0;score.textContent='FLOOR 0';livesLabel.textContent='♥ ♥ ♥'}document.getElementById('reset').onclick=reset;
 function dir(dx,dy){let dead=19;if(Math.hypot(dx,dy)<dead)return 0;if(Math.abs(dy)>Math.abs(dx)*1.12)return dy<0?1:2;return dx<0?3:4}
 function begin(e){e.preventDefault();let side=e.clientX<W/2?0:1;if(sticks[side])return;let t={id:e.pointerId,x:e.clientX,y:e.clientY,dx:0,dy:0,dir:0};sticks[side]=t;touches.set(e.pointerId,side);canvas.setPointerCapture(e.pointerId)}
 function move(e){if(!touches.has(e.pointerId))return;e.preventDefault();let side=touches.get(e.pointerId),s=sticks[side];if(!s)return;let dx=e.clientX-s.x,dy=e.clientY-s.y,m=Math.hypot(dx,dy),max=54;if(m>max){dx*=max/m;dy*=max/m}s.dx=dx;s.dy=dy;let d=dir(dx,dy);if(d!==s.dir){s.dir=d;handle(side,d)}}
@@ -35,10 +35,17 @@ function updateEvents(dt){
   if(!gameOver){
     spawnIn-=seconds;
     if(spawnIn<=0){
-      // Flowerpots fall from above, with a warning shadow and a visible trajectory.
-      const col=Math.floor(Math.random()*cols);
-      pots.push({col,y:-35,speed:Math.max(110,topH*.34)+Math.random()*45,rot:0});
-      spawnIn=2.9+Math.random()*2.1;
+      // A resident leans from a top-row window, warns the player, then drops a pot.
+      if(!thrower){thrower={col:Math.floor(Math.random()*cols),age:0,releaseAt:1.15,released:false};}
+      spawnIn=3.4+Math.random()*2.2;
+    }
+    if(thrower){
+      thrower.age+=seconds;
+      if(!thrower.released&&thrower.age>=thrower.releaseAt){
+        pots.push({col:thrower.col,y:rowH*.68,speed:Math.max(110,topH*.34)+Math.random()*45,rot:0});
+        thrower.released=true;
+      }
+      if(thrower.age>2.4)thrower=null;
     }
     ladyIn-=seconds;
     if(ladyIn<=0&&!lady){
@@ -66,19 +73,49 @@ function drawPot(p){
   rect(-10,-7,20,15,'#bd6540');rect(-13,-9,26,5,'#e58c51');rect(-6,-15,12,7,'#377945');
   ctx.restore();
 }
+function ellipse(x,y,rx,ry,c){
+  ctx.fillStyle=c;ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);ctx.fill();
+}
+function drawThrower(){
+  if(!thrower)return;
+  const x=buildingX+(thrower.col+.5)*cellW,y=rowH*.17;
+  const u=Math.min(cellW/75,rowH/110,1.15);
+  ctx.save();ctx.translate(x,y);ctx.scale(u,u);
+  // Blue-shirted resident leaning out of the highest window.
+  rect(-19,23,38,31,'#356bb7');
+  ellipse(0,14,15,17,'#eac39e');
+  ellipse(0,3,17,9,'#493227');
+  ellipse(-5,15,2.2,2.7,'#1b202a');ellipse(5,15,2.2,2.7,'#1b202a');
+  line(-7,26,7,26,'#8f4e44',2);
+  // An extended arm and a flowerpot, lifted before the release.
+  const holding=!thrower.released;
+  line(13,35,holding?28:26,holding?15:45,'#eac39e',7);
+  if(holding){rect(21,0,17,14,'#b96237');rect(18,-2,23,5,'#ef9b63');ellipse(29,-6,6,6,'#469650')}
+  rect(-23,49,46,7,'#e8d9bf');
+  ctx.restore();
+}
 function drawLady(){
   if(!lady)return;
   const y=lady.row*rowH+(visualClimb%1)*rowH;
-  const x=buildingX+(lady.col+.5)*cellW,sz=Math.min(cellW*.22,15);
-  ctx.save();ctx.beginPath();ctx.rect(x-cellW*.32,y+rowH*.12,cellW*.64,rowH*.66);ctx.clip();
-  // Comic-window gag: implied nudity only, shoulders/chest covered by curtains and sill.
-  ctx.fillStyle='#f2bf9c';ctx.beginPath();ctx.arc(x,y+rowH*.32,sz*.66,0,Math.PI*2);ctx.fill();
-  rect(x-sz*.9,y+rowH*.38,sz*1.8,rowH*.32,'#f2bf9c');
-  rect(x-sz,y+rowH*.2,sz*2,sz*.22,'#59321f');
-  rect(x-cellW*.34,y+rowH*.1,cellW*.22,rowH*.7,'#aa345d');
-  rect(x+cellW*.12,y+rowH*.1,cellW*.22,rowH*.7,'#aa345d');
-  rect(x-cellW*.34,y+rowH*.65,cellW*.68,rowH*.1,'#dbc0a6');
+  const x=buildingX+(lady.col+.5)*cellW;
+  const u=Math.min(cellW/76,rowH/108,1.2);
+  ctx.save();
+  ctx.beginPath();ctx.rect(x-cellW*.34,y+rowH*.13,cellW*.68,rowH*.69);ctx.clip();
+  ctx.translate(x,y+rowH*.15);ctx.scale(u,u);
+  // Comically surprised woman with recognizable face, hair, and raised arms.
+  // Curtains and the window sill obscure her torso.
+  ellipse(0,39,22,27,'#eab493');
+  ellipse(0,17,17,21,'#f2c4a0');
+  ellipse(0,5,19,15,'#59321f');
+  ellipse(-13,19,7,16,'#59321f');ellipse(13,19,7,16,'#59321f');
+  ellipse(-6,17,2,3,'#24212a');ellipse(6,17,2,3,'#24212a');
+  ellipse(0,28,4,6,'#9e4050');
+  line(-17,39,-24,19,'#f2c4a0',7);line(17,39,24,19,'#f2c4a0',7);
+  // Broad curtains hide everything except her head, shoulders, and hands.
+  rect(-34,-3,15,85,'#b83a63');rect(19,-3,15,85,'#b83a63');
+  rect(-35,52,70,16,'#d6c0ad');
+  rect(-35,50,70,5,'#f4e1ca');
   ctx.restore();
 }
-function draw(){ctx.clearRect(0,0,W,H);rect(0,0,W,H,'#101426');rect(buildingX,0,buildingW,topH,'#746f8b');let now=performance.now();let dt=Math.min(50,Math.max(0,now-prevFrame||16.7));prevFrame=now;updateEvents(dt);let ease=1-Math.exp(-dt/145);visualClimb+=(climb-visualClimb)*ease;visualLane+=(lane-visualLane)*(1-Math.exp(-dt/170));let moving=Math.abs(lane-visualLane)>.015;for(let a=0;a<2;a++){let target=arms[a]?-.91:.52;handPose[a]+=(target-handPose[a])*(1-Math.exp(-dt/75))}bodyBob*=Math.exp(-dt/140);stepPhase+=moving?dt*.075:0;let offset=(visualClimb%1)*rowH;for(let r=-1;r<rows+1;r++){let y=r*rowH+offset;for(let c=0;c<cols;c++){let x=buildingX+c*cellW;rect(x+2,y+2,cellW-4,rowH-4,'#a7a4ae');let wx=x+cellW*.17,wy=y+rowH*.13,ww=cellW*.66,wh=rowH*.68;rect(wx-3,wy-3,ww+6,wh+6,'#3a354e');rect(wx,wy,ww,wh,((r+c-Math.floor(visualClimb)+70000)%7===0)?'#edb968':'#253b60');rect(wx+ww*.48,wy,3,wh,'#c8d3e2');rect(wx,wy+wh*.52,ww,3,'#c8d3e2');rect(x+cellW*.08,y+rowH*.85,cellW*.84,5,'#e3d9c6')}}drawLady();for(const p of pots)drawPot(p);let px=buildingX+(visualLane+.5)*cellW,py=topH*.63,scale=Math.min(cellW*.48,27);ctx.save();ctx.translate(px,py+bodyBob*scale*.2);if(invulnerable<=0||Math.floor(clock*12)%2===0)rect(-scale*.35,scale*.05,scale*.7,scale*.8,shirt);ctx.fillStyle='#f5c89a';ctx.beginPath();ctx.arc(0,-scale*.22,scale*.31,0,Math.PI*2);ctx.fill();let stride=moving?Math.sin(stepPhase)*scale*.24:0;line(-scale*.15,scale*.83,-scale*.4+stride,scale*1.38,'#222337',5);line(scale*.15,scale*.83,scale*.4-stride,scale*1.38,'#222337',5);for(let i=0;i<2;i++){let sign=i===0?-1:1;let handY=handPose[i]*scale;let push=moving?(Math.floor(stepPhase/1.4)%2===0?.32:0):0;let handX=sign*scale*(handPose[i]<0?.62:.58)+scurryDir*scale*push;let elbowX=sign*scale*.57,elbowY=(handY+scale*.18)*.5;line(sign*scale*.3,scale*.18,elbowX,elbowY,'#f5c89a',5);line(elbowX,elbowY,handX,handY,'#f5c89a',5);ctx.fillStyle='#f5c89a';ctx.beginPath();ctx.arc(handX,handY,3.6,0,Math.PI*2);ctx.fill()}ctx.restore();if(gameOver){ctx.fillStyle='#0a1023dc';ctx.fillRect(buildingX,topH*.37,buildingW,topH*.28);ctx.textAlign='center';ctx.fillStyle='#fff';ctx.font='bold 23px system-ui';ctx.fillText('GAME OVER',W/2,topH*.49);ctx.font='13px system-ui';ctx.fillText('Tap Restart to climb again',W/2,topH*.56)}shake*=Math.pow(.75,dt/16.7);rect(0,topH,W,H-topH,'#171e34');line(0,topH,W,topH,'#f4be5a',3);ctx.textAlign='center';ctx.font='12px system-ui';ctx.fillStyle='#aab7d0';ctx.fillText('LEFT ARM',W*.25,topH+20);ctx.fillText('RIGHT ARM',W*.75,topH+20);for(let i=0;i<2;i++){let s=sticks[i],x=s?s.x:W*(i?.75:.25),y=s?s.y:topH+(H-topH)*.58,r=Math.min(57,W*.14);ctx.strokeStyle='#7589b4';ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.stroke();ctx.fillStyle='#647cae99';ctx.beginPath();ctx.arc(x+(s?s.dx:0),y+(s?s.dy:0),r*.42,0,Math.PI*2);ctx.fill()}requestAnimationFrame(draw)}draw();
+function draw(){ctx.clearRect(0,0,W,H);rect(0,0,W,H,'#101426');rect(buildingX,0,buildingW,topH,'#746f8b');let now=performance.now();let dt=Math.min(50,Math.max(0,now-prevFrame||16.7));prevFrame=now;updateEvents(dt);let ease=1-Math.exp(-dt/145);visualClimb+=(climb-visualClimb)*ease;visualLane+=(lane-visualLane)*(1-Math.exp(-dt/170));let moving=Math.abs(lane-visualLane)>.015;for(let a=0;a<2;a++){let target=arms[a]?-.91:.52;handPose[a]+=(target-handPose[a])*(1-Math.exp(-dt/75))}bodyBob*=Math.exp(-dt/140);stepPhase+=moving?dt*.075:0;let offset=(visualClimb%1)*rowH;for(let r=-1;r<rows+1;r++){let y=r*rowH+offset;for(let c=0;c<cols;c++){let x=buildingX+c*cellW;rect(x+2,y+2,cellW-4,rowH-4,'#a7a4ae');let wx=x+cellW*.17,wy=y+rowH*.13,ww=cellW*.66,wh=rowH*.68;rect(wx-3,wy-3,ww+6,wh+6,'#3a354e');rect(wx,wy,ww,wh,((r+c-Math.floor(visualClimb)+70000)%7===0)?'#edb968':'#253b60');rect(wx+ww*.48,wy,3,wh,'#c8d3e2');rect(wx,wy+wh*.52,ww,3,'#c8d3e2');rect(x+cellW*.08,y+rowH*.85,cellW*.84,5,'#e3d9c6')}}drawThrower();drawLady();for(const p of pots)drawPot(p);let px=buildingX+(visualLane+.5)*cellW,py=topH*.63,scale=Math.min(cellW*.48,27);ctx.save();ctx.translate(px,py+bodyBob*scale*.2);if(invulnerable<=0||Math.floor(clock*12)%2===0)rect(-scale*.35,scale*.05,scale*.7,scale*.8,shirt);ctx.fillStyle='#f5c89a';ctx.beginPath();ctx.arc(0,-scale*.22,scale*.31,0,Math.PI*2);ctx.fill();let stride=moving?Math.sin(stepPhase)*scale*.24:0;line(-scale*.15,scale*.83,-scale*.4+stride,scale*1.38,'#222337',5);line(scale*.15,scale*.83,scale*.4-stride,scale*1.38,'#222337',5);for(let i=0;i<2;i++){let sign=i===0?-1:1;let handY=handPose[i]*scale;let push=moving?(Math.floor(stepPhase/1.4)%2===0?.32:0):0;let handX=sign*scale*(handPose[i]<0?.62:.58)+scurryDir*scale*push;let elbowX=sign*scale*.57,elbowY=(handY+scale*.18)*.5;line(sign*scale*.3,scale*.18,elbowX,elbowY,'#f5c89a',5);line(elbowX,elbowY,handX,handY,'#f5c89a',5);ctx.fillStyle='#f5c89a';ctx.beginPath();ctx.arc(handX,handY,3.6,0,Math.PI*2);ctx.fill()}ctx.restore();if(gameOver){ctx.fillStyle='#0a1023dc';ctx.fillRect(buildingX,topH*.37,buildingW,topH*.28);ctx.textAlign='center';ctx.fillStyle='#fff';ctx.font='bold 23px system-ui';ctx.fillText('GAME OVER',W/2,topH*.49);ctx.font='13px system-ui';ctx.fillText('Tap Restart to climb again',W/2,topH*.56)}shake*=Math.pow(.75,dt/16.7);rect(0,topH,W,H-topH,'#171e34');line(0,topH,W,topH,'#f4be5a',3);ctx.textAlign='center';ctx.font='12px system-ui';ctx.fillStyle='#aab7d0';ctx.fillText('LEFT ARM',W*.25,topH+20);ctx.fillText('RIGHT ARM',W*.75,topH+20);for(let i=0;i<2;i++){let s=sticks[i],x=s?s.x:W*(i?.75:.25),y=s?s.y:topH+(H-topH)*.58,r=Math.min(57,W*.14);ctx.strokeStyle='#7589b4';ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.stroke();ctx.fillStyle='#647cae99';ctx.beginPath();ctx.arc(x+(s?s.dx:0),y+(s?s.dy:0),r*.42,0,Math.PI*2);ctx.fill()}requestAnimationFrame(draw)}draw();
 </script></body></html>
