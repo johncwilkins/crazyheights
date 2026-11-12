@@ -146,7 +146,7 @@ function updateEvents(dt){
       const aligned=Math.abs(visualLane-w.col)<.65;
       const heightGap=Math.abs(climb-w.targetClimb);
       if(aligned&&heightGap<.52&&w.age>.45){
-        w.peeked=true;w.blush=true;w.bonusAge=0;
+        w.peeked=true;w.blush=true;w.bonusAge=0;w.removeAt=w.age+1.8;
         points+=750;refreshScore();flash('+750 SNEAK A PEEK!',1.35);
       }else if(w.age>=w.peekLimit){
         w.missed=true;
@@ -163,7 +163,7 @@ function updateEvents(dt){
       startSlip('window');
       arms=[0,0];handPose=[.52,.52];bodyBob=1;
     }
-    if(w.age>(w.kind==='lady'?(w.peeked?Math.max(3,w.bonusAge+1.8):w.peekLimit+1.7):3.15))windows.splice(i,1);
+    if(w.age>(w.kind==='lady'?(w.peeked?w.removeAt:w.peekLimit+1.7):3.15))windows.splice(i,1);
   }
   if(lady){
     lady.life-=seconds;
