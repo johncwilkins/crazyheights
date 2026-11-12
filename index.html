@@ -241,7 +241,7 @@ function drawWindowEvent(w){
 }
 function drawGround(){
   // Entrance and sidewalk scroll away as the player leaves street level.
-  const y=topH*.77+visualClimb*rowH;
+  const y=topH*.63+Math.min(cw*.48,27)*1.4+visualClimb*rowH;
   if(y>topH+60)return;
   rect(0,y,W,Math.max(0,topH-y),'#62636b');rect(0,y,W,12,'#d4c5a7');
   for(let i=0;i<10;i++)rect(i*W/10,y+19,W/10-2,2,'#48474d');
