@@ -1,6 +1,6 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#101426"><title>Crazy Heights — v9.1</title><style>*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:#101426;color:white;font-family:system-ui;touch-action:none}#game{display:block;width:100vw;height:100dvh;touch-action:none}#hud{position:fixed;top:env(safe-area-inset-top);left:12px;right:12px;display:flex;justify-content:space-between;pointer-events:none;font-weight:900;text-shadow:1px 2px #000}#help{position:fixed;top:48px;width:100%;text-align:center;font-size:12px;color:#fff9;pointer-events:none}#reset{position:fixed;right:12px;top:55px;background:#253451;color:#fff;border:1px solid #fff6;border-radius:10px;padding:8px;touch-action:manipulation}</style></head><body><canvas id="game"></canvas><div id="hud"><span>CRAZY HEIGHTS</span><span id="score">FLOOR 0</span><span id="lives">♥ ♥ ♥</span></div><div id="help">Two thumbs • UP to reach, DOWN to pull • 50 FLOORS · WASD + arrows · v9.1</div><button id="reset">Restart</button><script>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#101426"><title>Crazy Heights — v9.2</title><style>*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:#101426;color:white;font-family:system-ui;touch-action:none}#game{display:block;width:100vw;height:100dvh;touch-action:none}#hud{position:fixed;top:env(safe-area-inset-top);left:12px;right:12px;display:flex;justify-content:space-between;pointer-events:none;font-weight:900;text-shadow:1px 2px #000}#help{position:fixed;top:48px;width:100%;text-align:center;font-size:12px;color:#fff9;pointer-events:none}#reset{position:fixed;right:12px;top:55px;background:#253451;color:#fff;border:1px solid #fff6;border-radius:10px;padding:8px;touch-action:manipulation}</style></head><body><canvas id="game"></canvas><div id="hud"><span>CRAZY HEIGHTS</span><span id="score">FLOOR 0</span><span id="lives">♥ ♥ ♥</span></div><div id="help">Two thumbs • UP to reach, DOWN to pull • 50 FLOORS · WASD + arrows · v9.2</div><button id="reset">Restart</button><script>
 const canvas=document.getElementById('game'),ctx=canvas.getContext('2d'),score=document.getElementById('score'),livesLabel=document.getElementById('lives');
-let W,H,dpr,worldTop=0,climb=0,lane=2,arms=[0,0],lastDirs=[0,0],touches=new Map(),sticks=[null,null],shake=0,visualClimb=0,visualLane=2,prevFrame=0,stepPhase=0,handPose=[.52,.52],lastPull=-1,bodyBob=0,shirt='#ffbf47',windows=[],windowIn=2.8,pots=[],thrower=null,spawnIn=3,lady=null,ladyIn=8,points=0,lives=3,invulnerable=0,gameOver=false,clock=0,scurryDir=0,sideRepeat=0,keys=[0,0],heldKeys=new Set(),won=false,startedAt=performance.now(),level=1,flashText='',flashTime=0,slip=null,roofBonus=false,boyfriend=null,shots=[],fallAnim=0,gorilla=null,roofEnding=0,roofConfetti=[];
+let W,H,dpr,worldTop=0,climb=0,lane=2,arms=[0,0],lastDirs=[0,0],touches=new Map(),sticks=[null,null],shake=0,visualClimb=0,visualLane=2,prevFrame=0,stepPhase=0,handPose=[.52,.52],lastPull=-1,bodyBob=0,shirt='#fa70c7',windows=[],windowIn=2.8,pots=[],thrower=null,spawnIn=3,lady=null,ladyIn=8,points=0,lives=3,invulnerable=0,gameOver=false,clock=0,scurryDir=0,sideRepeat=0,keys=[0,0],heldKeys=new Set(),won=false,startedAt=performance.now(),level=1,flashText='',flashTime=0,slip=null,roofBonus=false,boyfriend=null,shots=[],fallAnim=0,gorilla=null,roofEnding=0,roofConfetti=[];
 const cols=5,rows=6,MAX_FLOORS=50;let lastFloor=0;let topH,cellW,rowH,buildingX,buildingW;
 function resize(){W=innerWidth;H=innerHeight;dpr=Math.min(devicePixelRatio||1,2);canvas.width=W*dpr;canvas.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);topH=H*.74;buildingW=Math.min(W*.94,460);buildingX=(W-buildingW)/2;cellW=buildingW/cols;rowH=topH/rows}addEventListener('resize',resize);resize();
 function reset(){climb=0;lane=2;arms=[0,0];lastDirs=[0,0];worldTop=0;visualClimb=0;visualLane=2;handPose=[.52,.52];lastPull=-1;bodyBob=0;pots=[];windows=[];windowIn=2.8;thrower=null;spawnIn=3;lady=null;ladyIn=8;points=0;lives=3;gameOver=false;won=false;startedAt=performance.now();level=1;flashText='';flashTime=0;slip=null;roofBonus=false;boyfriend=null;shots=[];fallAnim=0;gorilla=null;roofEnding=0;roofConfetti=[];lastFloor=0;sideRepeat=0;invulnerable=0;score.textContent='FLOOR 0/50';livesLabel.textContent='♥ ♥ ♥'}document.getElementById('reset').onclick=reset;
@@ -243,14 +243,14 @@ function drawGround(){
   // Entrance and sidewalk scroll away as the player leaves street level.
   const y=topH*.63+Math.min(cellW*.48,27)*1.4+visualClimb*rowH;
   if(y>topH+60)return;
-  rect(0,y,W,Math.max(0,topH-y),'#62636b');rect(0,y,W,12,'#d4c5a7');
+  rect(0,y,W,Math.max(0,topH-y),'#303644');rect(0,y,W,34,'#62636b');rect(0,y,W,12,'#d4c5a7');
   for(let i=0;i<10;i++)rect(i*W/10,y+19,W/10-2,2,'#48474d');
   const dx=buildingX+2*cellW;
-  rect(dx,y-rh*.88,cellW,rh*.88,'#41404d');
-  rect(dx+cellW*.12,y-rh*.74,cellW*.76,rh*.74,'#8c6544');
-  ellipse(dx+cellW*.73,y-rh*.31,3,3,'#f3d378');
-  rect(buildingX+cellW*1.7,y-rh*.95,cellW*1.6,13,'#e2d0ae');
-  ctx.fillStyle='#342838';ctx.textAlign='center';ctx.font='bold 12px system-ui';ctx.fillText('CRAZY HEIGHTS',W/2,y-rh*.85);
+  rect(dx,y-rowH*.88,cellW,rowH*.88,'#41404d');
+  rect(dx+cellW*.12,y-rowH*.74,cellW*.76,rowH*.74,'#8c6544');
+  ellipse(dx+cellW*.73,y-rowH*.31,3,3,'#f3d378');
+  rect(buildingX+cellW*1.7,y-rowH*.95,cellW*1.6,13,'#e2d0ae');
+  ctx.fillStyle='#342838';ctx.textAlign='center';ctx.font='bold 12px system-ui';ctx.fillText('CRAZY HEIGHTS',W/2,y-rowH*.85);
 }
 function drawGorilla(){
  if(!gorilla)return;const x=buildingX+(gorilla.col+.5)*cellW,y=topH*.26,k=Math.min(cellW/65,1.35);
